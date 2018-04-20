@@ -17,7 +17,6 @@
 *
 !*/
 !/Projects/**
-/Projects/SpiderGwen/DerivedDataCache/*
 
 # C/C++ source files
 !*.c
@@ -162,6 +161,7 @@ Content/
 
 # Ignore DDC
 /Engine/DerivedDataCache/**
+/Projects/SpiderGwen/DerivedDataCache/**
 
 # Ignore intermediate folders
 Intermediate/
@@ -183,3 +183,6 @@ Engine/Binaries/DotNET/SwarmAgent.Options.xml
 # Ignore VS / VS Code settings directory
 .vs
 .vscode
+
+# Allow the critical binaries that will need to be rebuilt every time an engine code change is made
+!/Engine/Binaries/Win64/*.dll
