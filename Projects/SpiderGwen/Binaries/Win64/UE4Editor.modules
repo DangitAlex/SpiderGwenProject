@@ -1,7 +1,7 @@
 {
-	"BuildId": "f7ad1f08-5f7b-4cae-a8e9-fe1e31b38e96",
+	"BuildId": "ad461cbe-6685-446c-9a32-a6074c82d883",
 	"Modules": 
 	{
-		"SpiderGwen": "UE4Editor-SpiderGwen-6072.dll"
+		"SpiderGwen": "UE4Editor-SpiderGwen.dll"
 	}
 }

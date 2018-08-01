@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "WebAnchor.h"
+#include "SpiderGwenCharacterMovement.h"
 #include "SpiderGwenCharacter.generated.h"
 
 UCLASS(config=Game)
@@ -18,8 +20,13 @@ class ASpiderGwenCharacter : public ACharacter
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 		class UCameraComponent* FollowCamera;
+
 public:
-	ASpiderGwenCharacter();
+	/** Default UObject constructor. */
+	ASpiderGwenCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+	UPROPERTY(BlueprintReadOnly, Transient)
+		USpiderGwenCharacterMovement * SpiderMovement;
 
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
@@ -29,14 +36,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 		float BaseLookUpRate;
 
-	UFUNCTION(BlueprintImplementableEvent)
-		void WebSwingPressed();
-
-	UFUNCTION(BlueprintImplementableEvent)
-		void WebSwingReleased();
-
-	UFUNCTION(BlueprintImplementableEvent)
-		void TryWebDash();
+	virtual void BeginPlay() override;
 
 	void JumpPressed();
 	void JumpReleased();
@@ -44,8 +44,6 @@ public:
 
 	void RunPressed();
 	void RunReleased();
-
-protected:
 
 	virtual void Tick(float DeltaSeconds) override;
 
@@ -57,6 +55,8 @@ protected:
 
 	/** Called for side to side input */
 	void MoveRight(float Value);
+
+	virtual void AddMovementInput(FVector WorldDirection, float ScaleValue = 1.0f, bool bForce = false) override;
 
 	/** 
 	 * Called via input to turn at a given rate. 
@@ -103,9 +103,87 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Running")
 		bool bIsRunning;
 
-	//Web Swing Vars
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "WebSwing")
+	// AS: Web Swinging
+	UPROPERTY(BlueprintReadOnly, Category = "Web Swinging")
 		bool bWebSwingPressed;
+
+	UPROPERTY(EditAnywhere, Category = "Web Swinging")
+		float WebSwing_TraceLength;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Web Swinging")
+		float WebSwing_TraceSpread_Current;
+
+	UPROPERTY(EditAnywhere, Category = "Web Swinging")
+		float WebSwing_TraceSpread_MAX;
+
+	UPROPERTY(EditAnywhere, Category = "Web Swinging")
+		float WebSwing_TraceSpread_Speed;
+
+	UPROPERTY(EditAnywhere, Category = "Web Swinging")
+		float WebSwing_TraceSpreadAxisAngleOffset;
+
+	UPROPERTY(EditAnywhere, Category = "Web Swinging")
+		float WebSwing_MinRequiredValidLength;
+
+	UPROPERTY(EditAnywhere, Category = "Web Swinging")
+		float WebSwing_TraceCount;
+
+	//UPROPERTY(BlueprintReadOnly, Transient, Category = "Web Swinging")
+		//float WebSwing_WebLength;
+
+	//UPROPERTY(BlueprintReadOnly, Transient, Category = "Web Swinging")
+		//FVector WebSwing_AnchorLocation;
+
+	UPROPERTY(BlueprintReadWrite, Transient, Category = "Web Swinging")
+		AWebAnchor* WebAnchor_Primary;
+
+	UPROPERTY(BlueprintReadWrite, Transient, Category = "Web Swinging")
+		AWebAnchor* WebAnchor_Secondary;
+
+	void WebSwingPressed();
+	void WebSwingReleased();
+
+	UFUNCTION(BlueprintPure, Category = "Web Swinging")
+		bool CanWebSwing();
+
+	UFUNCTION(BlueprintPure, Category = "Web Swinging")
+		bool IsWebSwinging();
+
+	UFUNCTION(BlueprintPure, Category = "Web Swinging")
+		FVector GetWebAnchorLocation(EWebAnchorSide ForSide = EWebAnchorSide::SIDE_None) const;
+
+	UFUNCTION(BlueprintPure, Category = "Web Swinging")
+		float GetWebLength(EWebAnchorSide ForSide = EWebAnchorSide::SIDE_None) const;
+
+	UFUNCTION(BlueprintPure, Category = "Web Swinging")
+		bool CanTickWebSwing();
+
+	void Tick_WebSwingTrace(float DeltaSeconds);
+	void WebSwing_Start(FVector AnchorLoc);
+
+	UFUNCTION(BlueprintCallable, Category = "Web Swinging")
+		void WebSwing_Stop();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Web Swinging")
+		void BP_OnWebSwingStart(FVector AnchorLoc);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Web Swinging")
+		void BP_OnWebSwingStop();
+
+	// AS: Web Dashing 
+	UPROPERTY(EditAnywhere, Category = "Web Dash")
+		float WebDash_TraceDistance;
+
+	UPROPERTY(EditAnywhere, Category = "Web Dash")
+		float WebDash_Impulse_Forward;
+
+	UPROPERTY(EditAnywhere, Category = "Web Dash")
+		float WebDash_Impulse_Up;
+
+	UPROPERTY(EditAnywhere, Category = "Web Dash")
+		float WebDash_MaxVelocity;
+
+	void TryWebDash();
 
 	//Camera Vars
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Camera")
@@ -135,12 +213,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Camera")
 		float cameraOffset_InterpSpeed;
 
-	/** Handler for when a touch input begins. */
-	//void TouchStarted(ETouchIndex::Type FingerIndex, FVector Location);
-
-	/** Handler for when a touch input stops. */
-	//void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
-
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -156,5 +228,7 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Camera")
 		FRotator BP_OverrideCameraBaseOrientation();
+
+	virtual FVector OverrideCharacterVelocity(const FVector & InitialVelocity, const FVector & Gravity, const float & DeltaTime) override;
 };
 

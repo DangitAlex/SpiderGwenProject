@@ -1,13 +1,16 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "{D104A8AC-4187-AEC7-687F-7589553BEB27}",
+	"EngineAssociation": "",
 	"Category": "",
 	"Description": "",
 	"Modules": [
 		{
 			"Name": "SpiderGwen",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine"
+			]
 		}
 	]
 }

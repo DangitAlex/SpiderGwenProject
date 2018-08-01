@@ -106,6 +106,13 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 	}
 
 	BaseRotationOffset = FQuat::Identity;
+
+	bOverrideVelocity = false;
+
+	SoftTranslationSpeed = 5.f;
+	SoftRotationSpeed = 5.f;
+	SoftTranslationStopError = 0.1f;
+	SoftRotationStopError = 0.05f;
 }
 
 void ACharacter::PostInitializeComponents()
@@ -143,8 +150,9 @@ void ACharacter::PostInitializeComponents()
 void ACharacter::BeginPlay()
 {
 	Super::BeginPlay();
-}
 
+	MeshStartRelTransform = Mesh->GetRelativeTransform();
+}
 
 void ACharacter::CacheInitialMeshOffset(FVector MeshRelativeLocation, FRotator MeshRelativeRotation)
 {
@@ -1664,4 +1672,80 @@ void ACharacter::ClientAdjustRootMotionPosition_Implementation(float TimeStamp, 
 void ACharacter::ClientAdjustRootMotionSourcePosition_Implementation(float TimeStamp, FRootMotionSourceGroup ServerRootMotion, bool bHasAnimRootMotion, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode)
 {
 	GetCharacterMovement()->ClientAdjustRootMotionSourcePosition_Implementation(TimeStamp, ServerRootMotion, bHasAnimRootMotion, ServerMontageTrackPosition, ServerLoc, ServerRotation, ServerVelZ, ServerBase, ServerBoneName, bHasBase, bBaseRelativePosition, ServerMovementMode);
+}
+
+FVector ACharacter::OverrideCharacterVelocity(const FVector & InitialVelocity, const FVector & Gravity, const float & DeltaTime)
+{
+	return InitialVelocity;
+}
+
+void ACharacter::SoftSetWorldLocation(FVector NewLocation)
+{
+	FVector prevLoc = Mesh->GetComponentLocation();
+	SetActorLocation(NewLocation, true);
+	Mesh->SetWorldLocation(prevLoc);
+
+	bShouldTickSoftTransformation = true;
+}
+
+void ACharacter::SoftSetWorldRotation(FRotator NewRotation)
+{
+	FRotator prevRot = Mesh->GetComponentRotation();
+	SetActorRotation(NewRotation);
+	Mesh->SetWorldRotation(prevRot);
+
+	bShouldTickSoftTransformation = true;
+}
+
+void ACharacter::SoftSetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation)
+{
+	SoftSetWorldLocation(NewLocation);
+	SoftSetWorldRotation(NewRotation);
+}
+
+void ACharacter::TickSoftTransformation(float DeltaTime)
+{
+	if (!bShouldTickSoftTransformation)
+		return;
+
+	bool bCanKeepTicking = false;
+
+	FVector currLoc = Mesh->GetRelativeTransform().GetLocation();
+	if (!currLoc.Equals(MeshStartRelTransform.GetLocation(), SoftTranslationStopError))
+	{
+		Mesh->SetRelativeLocation(FMath::VInterpTo(currLoc, MeshStartRelTransform.GetLocation(), DeltaTime, SoftTranslationSpeed));
+
+		bCanKeepTicking = true;
+	}
+	else
+	{
+		Mesh->SetRelativeLocation(MeshStartRelTransform.GetLocation());
+	}
+
+	FRotator currRot = Mesh->GetRelativeTransform().GetRotation().Rotator();
+	if (!currRot.Equals(MeshStartRelTransform.GetRotation().Rotator(), SoftRotationStopError))
+	{
+		Mesh->SetRelativeRotation(FMath::RInterpTo(currRot, MeshStartRelTransform.GetRotation().Rotator(), DeltaTime, SoftRotationSpeed));
+
+		bCanKeepTicking = true;
+	}
+	else
+	{
+		Mesh->SetRelativeRotation(MeshStartRelTransform.GetRotation().Rotator());
+	}
+
+	bShouldTickSoftTransformation = bCanKeepTicking;
+}
+
+void ACharacter::ResetCharacterRotation(bool bFullReset /*= false*/, bool bResetMesh /*= false*/)
+{
+	FRotator newRotation = FRotator::ZeroRotator;
+
+	if (!bFullReset)
+	 newRotation = FRotator(0.f, GetActorRotation().Yaw, 0.f);
+
+	SetActorRotation(newRotation);
+
+	if (bResetMesh)
+		Mesh->SetRelativeRotation(MeshStartRelTransform.GetRotation().Rotator());
 }

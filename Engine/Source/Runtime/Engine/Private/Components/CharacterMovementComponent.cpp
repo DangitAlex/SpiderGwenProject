@@ -1139,6 +1139,16 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 		return;
 	}
 
+	// AS: Override velocity from owning Character
+	if (CharacterOwner->bOverrideVelocity)
+	{
+		Velocity = CharacterOwner->OverrideCharacterVelocity(Velocity, FVector(0.f, 0.f, GetGravityZ()), DeltaTime);
+	}
+
+	// AS: Soft Transform Tick
+	if(CharacterOwner->bShouldTickSoftTransformation)
+		CharacterOwner->TickSoftTransformation(DeltaTime);
+
 	// See if we fell out of the world.
 	const bool bIsSimulatingPhysics = UpdatedComponent->IsSimulatingPhysics();
 	if (CharacterOwner->Role == ROLE_Authority && (!bCheatFlying || bIsSimulatingPhysics) && !CharacterOwner->CheckStillInWorld())

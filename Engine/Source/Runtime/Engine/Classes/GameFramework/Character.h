@@ -216,7 +216,7 @@ public:
 
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-private:
+//private:
 	/** The main skeletal mesh associated with this Character (optional sub-object). */
 	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
 	USkeletalMeshComponent* Mesh;
@@ -901,4 +901,43 @@ public:
 	 * Called for everyone when recording a Client Replay, including Simulated Proxies.
 	 */
 	virtual void PreReplicationForReplay(IRepChangedPropertyTracker & ChangedPropertyTracker) override;
+
+	UPROPERTY(EditAnywhere, Category = "Velocity")
+		bool bOverrideVelocity;
+
+	UFUNCTION(BlueprintCallable, Category = "Velocity")
+		virtual FVector OverrideCharacterVelocity(const FVector & InitialVelocity, const FVector & Gravity, const float & DeltaTime);
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Soft Transformation")
+		bool bShouldTickSoftTransformation;
+
+	UPROPERTY(EditAnywhere, Category = "Soft Transformation")
+		float SoftTranslationSpeed;
+
+	UPROPERTY(EditAnywhere, Category = "Soft Transformation")
+		float SoftRotationSpeed;
+
+	UPROPERTY(EditAnywhere, Category = "Soft Transformation")
+		float SoftTranslationStopError;
+
+	UPROPERTY(EditAnywhere, Category = "Soft Transformation")
+		float SoftRotationStopError;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Soft Transformation")
+		FTransform MeshStartRelTransform;
+
+	UFUNCTION(BlueprintCallable, Category = "Soft Transformation")
+		virtual void SoftSetWorldLocation(FVector NewLocation);
+
+	UFUNCTION(BlueprintCallable, Category = "Soft Transformation")
+		virtual void SoftSetWorldRotation(FRotator NewRotation);
+
+	UFUNCTION(BlueprintCallable, Category = "Soft Transformation")
+		virtual void SoftSetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation);
+
+	UFUNCTION(Category = "Soft Transformation")
+		virtual void TickSoftTransformation(float DeltaTime);
+
+	UFUNCTION(BlueprintCallable, Category = "Reset")
+		void ResetCharacterRotation(bool bFullReset = false, bool bResetMesh = false);
 };
