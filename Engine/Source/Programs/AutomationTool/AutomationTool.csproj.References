@@ -1,0 +1,75 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ProjectReference Include="AllDesktop\AllDesktop.Automation.csproj">
+      <Project>{a9cd1a06-764a-4c53-86ce-2f34b94f0283}</Project>
+      <Name>AllDesktop.Automation</Name>
+      <Private>false</Private>
+    </ProjectReference>
+    <ProjectReference Include="Android\Android.Automation.csproj">
+      <Project>{32e3a47e-359a-4f78-ae6c-703b87de0b97}</Project>
+      <Name>Android.Automation</Name>
+      <Private>false</Private>
+    </ProjectReference>
+    <ProjectReference Include="AutomationUtils\AutomationUtils.Automation.csproj">
+      <Project>{2c96a7f2-b1a3-4258-8e0a-e588ff41a53e}</Project>
+      <Name>AutomationUtils.Automation</Name>
+      <Private>false</Private>
+    </ProjectReference>
+    <ProjectReference Include="BuildGraph\BuildGraph.Automation.csproj">
+      <Project>{a002361e-37f9-4124-af82-cf0d393cb928}</Project>
+      <Name>BuildGraph.Automation</Name>
+      <Private>false</Private>
+    </ProjectReference>
+    <ProjectReference Include="HTML5\HTML5.Automation.csproj">
+      <Project>{90ff4220-1cae-4cca-bbf6-7aaaed069f03}</Project>
+      <Name>HTML5.Automation</Name>
+      <Private>false</Private>
+    </ProjectReference>
+    <ProjectReference Include="IOS\IOS.Automation.csproj">
+      <Project>{e1f1261f-da95-41bd-80c1-60fbe0d37d22}</Project>
+      <Name>IOS.Automation</Name>
+      <Private>false</Private>
+    </ProjectReference>
+    <ProjectReference Include="Linux\Linux.Automation.csproj">
+      <Project>{ec395254-405b-4030-92ce-e346cc50848d}</Project>
+      <Name>Linux.Automation</Name>
+      <Private>false</Private>
+    </ProjectReference>
+    <ProjectReference Include="Localization\Localization.Automation.csproj">
+      <Project>{c2f959b1-1727-4598-9c32-3d9acce72750}</Project>
+      <Name>Localization.Automation</Name>
+      <Private>false</Private>
+    </ProjectReference>
+    <ProjectReference Include="Mac\Mac.Automation.csproj">
+      <Project>{16778681-dab8-46a4-89f6-927796467995}</Project>
+      <Name>Mac.Automation</Name>
+      <Private>false</Private>
+    </ProjectReference>
+    <ProjectReference Include="OneSkyLocalization\OneSkyLocalization.Automation.csproj">
+      <Project>{39369368-5603-46da-baae-766bb3cb2b51}</Project>
+      <Name>OneSkyLocalization.Automation</Name>
+      <Private>false</Private>
+    </ProjectReference>
+    <ProjectReference Include="Scripts\AutomationScripts.Automation.csproj">
+      <Project>{8aa00d65-0954-4a27-ac0d-fb8b1106120f}</Project>
+      <Name>AutomationScripts.Automation</Name>
+      <Private>false</Private>
+    </ProjectReference>
+    <ProjectReference Include="TVOS\TVOS.Automation.csproj">
+      <Project>{e1f1261f-da95-41bd-81c1-61fbe1d37d22}</Project>
+      <Name>TVOS.Automation</Name>
+      <Private>false</Private>
+    </ProjectReference>
+    <ProjectReference Include="Win\Win.Automation.csproj">
+      <Project>{6f6f8e5b-53ca-4c9f-a696-96aa9b8fb128}</Project>
+      <Name>Win.Automation</Name>
+      <Private>false</Private>
+    </ProjectReference>
+    <ProjectReference Include="XLocLocalization\XLocLocalization.Automation.csproj">
+      <Project>{7e2d6784-c9b7-40c6-a89b-0a8afddce60d}</Project>
+      <Name>XLocLocalization.Automation</Name>
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+</Project>
