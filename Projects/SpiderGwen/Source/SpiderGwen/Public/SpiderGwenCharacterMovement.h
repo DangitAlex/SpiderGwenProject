@@ -15,6 +15,12 @@ class SPIDERGWEN_API USpiderGwenCharacterMovement : public UCharacterMovementCom
 public:
 	USpiderGwenCharacterMovement(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	UPROPERTY(EditAnywhere, Category = "Web Swing")
+		float WebSwingVelocity_MAX;
+
+	UPROPERTY(EditAnywhere, Category = "Web Swing")
+		float InputForceSwingFrictionSpeed;
+
 protected:
 	virtual void InitializeComponent() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
@@ -23,6 +29,10 @@ protected:
 public:
 	UFUNCTION(Category = "Hit Delegates")
 		void OnOwningCharCapsuleHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
+
+	UFUNCTION(BluepriuntPure, Category = "Velocity")
+		float GetVelocityRatio() const;
+
 
 	virtual void PhysFalling(float deltaTime, int32 Iterations) override;
 	virtual void PhysCustom(float deltaTime, int32 Iterations) override;

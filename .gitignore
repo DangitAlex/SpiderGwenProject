@@ -16,7 +16,7 @@
 # Ignore all files by default, but scan all directories
 *
 !*/
-!/Projects/**
+#!/Projects/**
 
 # C/C++ source files
 !*.c
@@ -113,7 +113,7 @@
 *~
 
 # Exceptions
-/*.sln
+#*.sln
 /*.xcodeproj
 /Makefile
 /CMakeLists.txt
@@ -186,3 +186,4 @@ Engine/Binaries/DotNET/SwarmAgent.Options.xml
 
 # Allow the critical binaries that will need to be rebuilt every time an engine code change is made
 !/Engine/Binaries/Win64/*.dll
+!/Projects/SpiderGwen/Binaries/Win64/*.dll

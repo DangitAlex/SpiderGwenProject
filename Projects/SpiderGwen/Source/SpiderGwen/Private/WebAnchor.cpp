@@ -9,8 +9,11 @@ AWebAnchor::AWebAnchor()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	AnchorRoot = CreateDefaultSubobject<USceneComponent>(TEXT("AnchorRoot"));
 	AnchorMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AnchorMesh"));
 	WebMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WebMesh"));
+
+	SetRootComponent(AnchorRoot);
 }
 
 // Called when the game starts or when spawned

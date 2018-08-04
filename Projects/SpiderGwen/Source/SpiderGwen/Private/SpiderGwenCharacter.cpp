@@ -77,9 +77,11 @@ ASpiderGwenCharacter::ASpiderGwenCharacter(const FObjectInitializer& ObjectIniti
 	WebSwing_TraceLength = 10000.f;
 	WebSwing_TraceSpread_MAX = 40.f;
 	WebSwing_TraceSpread_Speed = 30.f;
-	WebSwing_TraceSpreadAxisAngleOffset = 45.f;
+	WebSwing_TraceSpreadAxisAngleOffset_MIN = 25.f;
+	WebSwing_TraceSpreadAxisAngleOffset_MAX = 50.f;
 	WebSwing_TraceCount = 30;
 	WebSwing_MinRequiredValidLength = 1000.f;
+	WebSwing_InputForce_MAX = 150000.f;
 
 	WebDash_TraceDistance = 10000.f;
 	WebDash_Impulse_Forward = 6000.f;
@@ -130,51 +132,62 @@ void ASpiderGwenCharacter::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 
 	if (CanTickWebSwing())
+	{
 		Tick_WebSwingTrace(DeltaSeconds);
+	}
+	else if (IsWebSwinging())
+	{
+		if (!CanWebSwing())
+			WebSwing_Stop();
+	}
+
+	if (bIsChargingJump)
+	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, -1.f, (FMath::Lerp(FLinearColor::White, FLinearColor::Yellow, GetJumpChargeRatio())).ToFColor(true), FString::Printf(TEXT("Jump Charge: %f"), GetJumpChargeRatio()));
+	}
 }
 
 bool ASpiderGwenCharacter::CanTickWebSwing()
 {
-	return CanWebSwing() && bWebSwingPressed && !IsWebSwinging();
+	return CanWebSwing(true) && bWebSwingPressed && !IsWebSwinging();
 }
 
 void ASpiderGwenCharacter::Tick_WebSwingTrace(float DeltaSeconds)
 {
-	//if (WebSwing_TraceSpread_Current != WebSwing_TraceSpread_MAX)
+	WebSwing_TraceSpreadAxisAngleOffset_Current = FMath::Lerp(WebSwing_TraceSpreadAxisAngleOffset_MIN, WebSwing_TraceSpreadAxisAngleOffset_MAX, SpiderMovement->GetVelocityRatio());
+
+	if (WebSwing_TraceSpread_Current > WebSwing_TraceSpread_MAX)
 	{
-		if (WebSwing_TraceSpread_Current > WebSwing_TraceSpread_MAX)
+		WebSwing_TraceSpread_Current = WebSwing_TraceSpread_MAX;
+	}
+	else
+	{
+		for (int i = 0; i < WebSwing_TraceCount; i++)
 		{
-			WebSwing_TraceSpread_Current = WebSwing_TraceSpread_MAX;
-		}
-		else
-		{
-			for (int i = 0; i < WebSwing_TraceCount; i++)
+			float currAngle = (float)i * (360.f / (float)WebSwing_TraceCount);
+
+			FRotator offsetRot = FRotator(0.f, GetControlRotation().Yaw, 0.f);
+			FVector CurrStart = GetActorLocation();
+			FVector StartNormal = FVector::UpVector.RotateAngleAxis(WebSwing_TraceSpreadAxisAngleOffset_MAX, (FRotationMatrix(offsetRot).GetScaledAxis(EAxis::Y)));
+			FVector RotAxis = (FRotationMatrix(offsetRot).GetScaledAxis(EAxis::Y)).RotateAngleAxis(currAngle, StartNormal);
+			FVector SpreadNormal = StartNormal.RotateAngleAxis(WebSwing_TraceSpread_Current, RotAxis);
+			FVector CurrEnd = CurrStart + (SpreadNormal * WebSwing_TraceLength);
+
+			FHitResult hit;
+			bool bResult = GetWorld()->LineTraceSingleByChannel(hit, CurrStart, CurrEnd, ECC_Visibility);
+			if (bResult)
 			{
-				float currAngle = (float)i * (360.f / (float)WebSwing_TraceCount);
+				float distToAnchor = (hit.ImpactPoint - GetActorLocation()).SizeSquared();
 
-				FRotator offsetRot = FRotator(0.f, GetControlRotation().Yaw, 0.f);
-				FVector CurrStart = GetActorLocation();
-				FVector StartNormal = FVector::UpVector.RotateAngleAxis(WebSwing_TraceSpreadAxisAngleOffset, (FRotationMatrix(offsetRot).GetScaledAxis(EAxis::Y)));
-				FVector RotAxis = (FRotationMatrix(offsetRot).GetScaledAxis(EAxis::Y)).RotateAngleAxis(currAngle, StartNormal);
-				FVector SpreadNormal = StartNormal.RotateAngleAxis(WebSwing_TraceSpread_Current, RotAxis);
-				FVector CurrEnd = CurrStart + (SpreadNormal * WebSwing_TraceLength);
-
-				FHitResult hit;
-				bool bResult = GetWorld()->LineTraceSingleByChannel(hit, CurrStart, CurrEnd, ECC_Visibility);
-				if (bResult)
-				{
-					float distToAnchor = (hit.ImpactPoint - GetActorLocation()).SizeSquared();
-
-					if(distToAnchor >= FMath::Square(WebSwing_MinRequiredValidLength))
-						WebSwing_Start(hit.ImpactPoint);
-				}
-
-				//DrawDebugLine(GetWorld(), CurrStart, (CurrStart + RotAxis * 50.f), FColor::Orange, false, -1.f, 0, 1.f);
-				DrawDebugLine(GetWorld(), CurrStart, CurrEnd, bResult ? FColor::Green : FColor::Purple, false, -1.f, 0, 3.f);
+				if(distToAnchor >= FMath::Square(WebSwing_MinRequiredValidLength))
+					WebSwing_Start(hit.ImpactPoint);
 			}
 
-			WebSwing_TraceSpread_Current = FMath::FInterpConstantTo(WebSwing_TraceSpread_Current, WebSwing_TraceSpread_MAX, DeltaSeconds, WebSwing_TraceSpread_Speed);
+			//DrawDebugLine(GetWorld(), CurrStart, (CurrStart + RotAxis * 50.f), FColor::Orange, false, -1.f, 0, 1.f);
+			DrawDebugLine(GetWorld(), CurrStart, CurrEnd, bResult ? FColor::Green : FColor::Purple, false, -1.f, 0, 3.f);
 		}
+
+		WebSwing_TraceSpread_Current = FMath::FInterpConstantTo(WebSwing_TraceSpread_Current, WebSwing_TraceSpread_MAX, DeltaSeconds, WebSwing_TraceSpread_Speed);
 	}
 }
 
@@ -188,12 +201,17 @@ void ASpiderGwenCharacter::JumpPressed()
 
 void ASpiderGwenCharacter::JumpReleased()
 {
-	jumpIntensity_current = FMath::Clamp(((GetGameTimeSinceCreation() - lastJumpChargeStartTime) / fullJumpChargeTime), 0.f, 1.f);
+	jumpIntensity_current = GetJumpChargeRatio();
 
 	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, TEXT("Jump Released :: " + FString::SanitizeFloat(jumpIntensity_current)));
 
-	if (bIsChargingJump && CanJump())
-		OnJump();
+	if (bIsChargingJump)
+	{
+		if (CanJump() || IsWebSwinging())
+		{
+			OnJump();
+		}
+	}
 
 	bIsChargingJump = false;
 	jumpIntensity_current = 0.f;
@@ -204,21 +222,36 @@ void ASpiderGwenCharacter::OnJump()
 	float currJumpVelocityZ = 0.f;
 	float currJumpVelocityX = 0.f;
 
-	if (jumpIntensity_current >= jumpIntensity_chargeThreshold)
+	if (GetJumpChargeRatio() >= jumpIntensity_chargeThreshold)
 	{
-		currJumpVelocityZ = SpiderMovement->JumpZVelocity * (1.f + (jumpIntensity_current * (jumpVelocity_ScaleMax - 1.f)));
+		if (IsWebSwinging())
+		{
+			currJumpVelocityZ = GetJumpChargeRatio() * (FMath::Max(FVector::DotProduct(SpiderMovement->Velocity, FVector::UpVector), 0.f) *  2.f);
+			currJumpVelocityX = GetJumpChargeRatio() * (FVector::DotProduct(SpiderMovement->Velocity, GetActorForwardVector()) * 2.f);
 
-		if (bRunPressed)
-			currJumpVelocityX = 2500.f;
+			WebSwing_Stop();
+		}
+		else
+		{
+			currJumpVelocityZ = SpiderMovement->JumpZVelocity * (1.f + (GetJumpChargeRatio() * (jumpVelocity_ScaleMax - 1.f)));
+
+			if (bRunPressed)
+				currJumpVelocityX = 2500.f;
+		}
 	}
 	else
 		currJumpVelocityZ = SpiderMovement->JumpZVelocity;
 
-	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Yellow, TEXT("Jump Z Vel :: " + FString::SanitizeFloat(currJumpVelocityZ)));
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Jump Z Vel :: " + FString::SanitizeFloat(currJumpVelocityZ)));
 
 	FVector finalJumpImpulse = (GetActorUpVector() * currJumpVelocityZ) + (GetActorForwardVector() * currJumpVelocityX);
 
 	SpiderMovement->AddImpulse(finalJumpImpulse, true);
+}
+
+float ASpiderGwenCharacter::GetJumpChargeRatio()
+{
+	return FMath::Clamp(((GetGameTimeSinceCreation() - lastJumpChargeStartTime) / fullJumpChargeTime), 0.f, 1.f);
 }
 
 void ASpiderGwenCharacter::RunPressed()
@@ -250,13 +283,12 @@ void ASpiderGwenCharacter::LookUpAtRate(float Rate)
 
 void ASpiderGwenCharacter::MoveForward(float Value)
 {
-	if ((Controller != NULL) && (Value != 0.0f))
+	if (Controller != NULL && Value != 0.f)
 	{
 		if (IsWebSwinging())
 		{
 			// find out which way is forward
 			const FRotator Rotation = Controller->GetControlRotation();
-			//const FRotator YawRotation(0, Rotation.Yaw, 0);
 
 			// get forward vector, projected onto the plane created by the dir from this pawn to the anchor
 			const FVector Direction = (FVector::VectorPlaneProject(FRotationMatrix(Rotation).GetUnitAxis(EAxis::X), (GetWebAnchorLocation() - GetActorLocation()).GetSafeNormal())).GetSafeNormal();
@@ -277,11 +309,16 @@ void ASpiderGwenCharacter::MoveForward(float Value)
 			AddMovementInput(Direction, Value);
 		}
 	}
+
+	LastMovementInput.X = Value;
+
+	if (LastMovementInput == FVector2D::ZeroVector)
+		WebSwing_InputForce_Current = FVector::ZeroVector;
 }
 
 void ASpiderGwenCharacter::MoveRight(float Value)
 {
-	if ((Controller != NULL) && (Value != 0.0f))
+	if (Controller != NULL && Value != 0.f)
 	{
 		if (IsWebSwinging())
 		{
@@ -308,16 +345,19 @@ void ASpiderGwenCharacter::MoveRight(float Value)
 			AddMovementInput(Direction, Value);
 		}
 	}
+
+	LastMovementInput.Y = Value;
+
+	if (LastMovementInput == FVector2D::ZeroVector)
+		WebSwing_InputForce_Current = FVector::ZeroVector;
 }
 
 void ASpiderGwenCharacter::AddMovementInput(FVector WorldDirection, float ScaleValue, bool bForce /*=false*/)
 {
 	if (IsWebSwinging())
 	{
-		FVector airForce = WorldDirection * ScaleValue * 200000.f;
-		SpiderMovement->AddForce(airForce);
-
-		DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + airForce, FColor::Yellow, false, -1.f, 0, 10.f);
+		WebSwing_InputForce_Current = WorldDirection * ScaleValue * WebSwing_InputForce_MAX;
+		DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + WebSwing_InputForce_Current, FColor::Yellow, false, -1.f, 0, 10.f);
 	}
 	else
 	{
@@ -346,14 +386,14 @@ FVector ASpiderGwenCharacter::OverrideCharacterVelocity(const FVector & InitialV
 }
 
 // AS: Web Swinging ==========================================================================================
-bool ASpiderGwenCharacter::CanWebSwing()
+bool ASpiderGwenCharacter::CanWebSwing(bool bToStart /*= false*/)
 {
-	return true;//SpiderMovement->IsFalling();
+	return SpiderMovement->IsFalling() && (bToStart ? !IsWebSwinging() : SpiderMovement->CustomMovementMode == 1);
 }
 
 bool ASpiderGwenCharacter::IsWebSwinging()
 {
-  	return SpiderMovement->IsFalling() && SpiderMovement->CustomMovementMode == 1;
+  	return bIsWebSwinging;
 }
 
 FVector ASpiderGwenCharacter::GetWebAnchorLocation(EWebAnchorSide ForSide /*= EWebAnchorSide::SIDE_None*/) const
@@ -448,14 +488,14 @@ void ASpiderGwenCharacter::WebSwingReleased()
 
 void ASpiderGwenCharacter::WebSwing_Start(FVector AnchorLoc)
 {
+	bIsWebSwinging = true;
+
 	SpiderMovement->SetMovementMode(EMovementMode::MOVE_Falling);
 	SpiderMovement->CustomMovementMode = 1;
 	SpiderMovement->GroundFriction = 0.f;
 	SpiderMovement->FallingLateralFriction = 0.f;
 	SpiderMovement->AirControl = 0.f;
 
-	//WebSwing_AnchorLocation = AnchorLoc;
-	//WebSwing_WebLength = (AnchorLoc - GetActorLocation()).Size();
 	SpiderMovement->bOrientRotationToMovement = false;
 
 	FTransform spawnTransform = FTransform();
@@ -466,20 +506,13 @@ void ASpiderGwenCharacter::WebSwing_Start(FVector AnchorLoc)
 	spawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	spawnParams.Instigator = this;
 
-	/*if (WebAnchor_Primary == NULL)
-	{
-		WebAnchor_Primary = Cast<AWebAnchor>(GetWorld()->SpawnActor(AWebAnchor::StaticClass(), &spawnTransform, spawnParams));
-	}
-	else
-	{
-		WebAnchor_Secondary = Cast<AWebAnchor>(GetWorld()->SpawnActor(AWebAnchor::StaticClass(), &spawnTransform, spawnParams));
-	}*/
-
 	BP_OnWebSwingStart(AnchorLoc);
 }
 
 void ASpiderGwenCharacter::WebSwing_Stop()
 {
+	bIsWebSwinging = false;
+
 	if(SpiderMovement->MovementMode == EMovementMode::MOVE_Custom)
 		SpiderMovement->SetMovementMode(EMovementMode::MOVE_Falling);
 
@@ -489,18 +522,6 @@ void ASpiderGwenCharacter::WebSwing_Stop()
 	SpiderMovement->FallingLateralFriction = GetDefault<USpiderGwenCharacterMovement>()->FallingLateralFriction;
 	SpiderMovement->AirControl = GetDefault<USpiderGwenCharacterMovement>()->AirControl;
 	ResetCharacterRotation(false, true);
-
-	/*if (WebAnchor_Primary)
-	{
-		WebAnchor_Primary->Destroy();
-		WebAnchor_Primary = NULL;
-	}
-
-	if (WebAnchor_Secondary)
-	{
-		WebAnchor_Secondary->Destroy();
-		WebAnchor_Secondary = NULL;
-	}*/
 
 	BP_OnWebSwingStop();
 }

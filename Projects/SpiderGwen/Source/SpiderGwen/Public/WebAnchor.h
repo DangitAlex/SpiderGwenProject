@@ -27,6 +27,9 @@ public:
 	AWebAnchor();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Web Anchor", meta = (AllowPrivateAccess = "true"))
+		class USceneComponent * AnchorRoot;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Web Anchor", meta = (AllowPrivateAccess = "true"))
 		class UStaticMeshComponent * AnchorMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Web Anchor", meta = (AllowPrivateAccess = "true"))

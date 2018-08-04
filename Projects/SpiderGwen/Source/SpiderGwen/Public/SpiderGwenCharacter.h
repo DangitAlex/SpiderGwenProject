@@ -42,6 +42,9 @@ public:
 	void JumpReleased();
 	void OnJump();
 
+	UFUNCTION(BlueprintPure, Category = "Jumping")
+		float GetJumpChargeRatio();
+
 	void RunPressed();
 	void RunReleased();
 
@@ -70,9 +73,11 @@ public:
 	 */
 	void LookUpAtRate(float Rate);
 
-	//Jumping Vars
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Jumping")
+		FVector2D LastMovementInput;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Jumping")
+	//Jumping Vars
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Jumping")
 		bool bIsChargingJump;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Jumping")
@@ -81,7 +86,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Jumping")
 		float fullJumpChargeTime;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Jumping")
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Jumping")
 		float jumpIntensity_current;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Jumping")
@@ -97,15 +102,18 @@ public:
 		float jumpVelocity_ScaleMax;
 
 	//Running Vars
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Running")
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Running")
 		bool bRunPressed;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Running")
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Running")
 		bool bIsRunning;
 
 	// AS: Web Swinging
-	UPROPERTY(BlueprintReadOnly, Category = "Web Swinging")
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Web Swinging")
 		bool bWebSwingPressed;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Web Swinging")
+		bool bIsWebSwinging;
 
 	UPROPERTY(EditAnywhere, Category = "Web Swinging")
 		float WebSwing_TraceLength;
@@ -120,13 +128,25 @@ public:
 		float WebSwing_TraceSpread_Speed;
 
 	UPROPERTY(EditAnywhere, Category = "Web Swinging")
-		float WebSwing_TraceSpreadAxisAngleOffset;
+		float WebSwing_TraceSpreadAxisAngleOffset_MIN;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Web Swinging")
+		float WebSwing_TraceSpreadAxisAngleOffset_Current;
+
+	UPROPERTY(EditAnywhere, Category = "Web Swinging")
+		float WebSwing_TraceSpreadAxisAngleOffset_MAX;
 
 	UPROPERTY(EditAnywhere, Category = "Web Swinging")
 		float WebSwing_MinRequiredValidLength;
 
 	UPROPERTY(EditAnywhere, Category = "Web Swinging")
 		float WebSwing_TraceCount;
+
+	UPROPERTY(EditAnywhere, Category = "Web Swinging")
+		float WebSwing_InputForce_MAX;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "Web Swinging")
+		FVector WebSwing_InputForce_Current;
 
 	//UPROPERTY(BlueprintReadOnly, Transient, Category = "Web Swinging")
 		//float WebSwing_WebLength;
@@ -144,7 +164,7 @@ public:
 	void WebSwingReleased();
 
 	UFUNCTION(BlueprintPure, Category = "Web Swinging")
-		bool CanWebSwing();
+		bool CanWebSwing(bool bToStart = false);
 
 	UFUNCTION(BlueprintPure, Category = "Web Swinging")
 		bool IsWebSwinging();

@@ -10,6 +10,8 @@ USpiderGwenCharacterMovement::USpiderGwenCharacterMovement(const FObjectInitiali
 	: Super(ObjectInitializer)
 {
 	AirControl = 1.f;
+	WebSwingVelocity_MAX = 5000.f;
+	InputForceSwingFrictionSpeed = 350.f;
 }
 
 void USpiderGwenCharacterMovement::InitializeComponent()
@@ -29,7 +31,7 @@ void USpiderGwenCharacterMovement::PostLoad()
 
 void USpiderGwenCharacterMovement::OnOwningCharCapsuleHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
 {
-	if (GEngine) GEngine->AddOnScreenDebugMessage(0, 5.f, FColor::Yellow, FString::Printf(TEXT("CAPSULE HIT :: %s"), *Hit.ImpactNormal.ToString()));
+	//if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, FString::Printf(TEXT("CAPSULE HIT :: %s"), *Hit.ImpactNormal.ToString()));
 
 	ASpiderGwenCharacter * SpiderOwner = (ASpiderGwenCharacter*)PawnOwner;
 
@@ -57,6 +59,21 @@ void USpiderGwenCharacterMovement::OnOwningCharCapsuleHit(UPrimitiveComponent* H
 			//SimulateWebTension();
 		}
 	}
+}
+
+float USpiderGwenCharacterMovement::GetVelocityRatio() const
+{
+	switch (MovementMode)
+	{
+	case MOVE_Walking:
+		return FMath::Clamp((Velocity.SizeSquared() / FMath::Square(MaxWalkSpeed)), 0.f, 1.f);
+		break;
+	case MOVE_Falling:
+		if (((ASpiderGwenCharacter*)CharacterOwner)->IsWebSwinging())
+			return FMath::Clamp((Velocity.SizeSquared() / FMath::Square(WebSwingVelocity_MAX)), 0.f, 1.f);
+		break;
+	}
+	return 0.f;
 }
 
 void USpiderGwenCharacterMovement::PhysFalling(float deltaTime, int32 Iterations)
@@ -94,6 +111,20 @@ void USpiderGwenCharacterMovement::PhysWebSwinging(float DeltaTime, int32 Iterat
 	if (!SpiderOwner)
 		return;
 
+	// AS: Input Force
+	if (SpiderOwner->WebSwing_InputForce_Current != FVector::ZeroVector)
+	{
+		AddForce(SpiderOwner->WebSwing_InputForce_Current);
+
+		FVector InputForceDir = SpiderOwner->WebSwing_InputForce_Current.GetSafeNormal();
+		float inputForceVelocity = FVector::DotProduct(InputForceDir, Velocity);
+		FVector modifiedVelocity = Velocity + (inputForceVelocity * -InputForceDir);
+
+		modifiedVelocity = FMath::VInterpConstantTo(modifiedVelocity, FVector::ZeroVector, DeltaTime, InputForceSwingFrictionSpeed);
+
+		Velocity = modifiedVelocity + (inputForceVelocity * InputForceDir);
+	}
+
 	if ((SpiderOwner->GetWebAnchorLocation() - GetActorLocation()).SizeSquared() >= FMath::Square(SpiderOwner->GetWebLength()))
 	{
 		SimulateWebTension();
@@ -101,6 +132,8 @@ void USpiderGwenCharacterMovement::PhysWebSwinging(float DeltaTime, int32 Iterat
 		// AS: Simulate centripetal force
 		AddForce((SpiderOwner->GetWebAnchorLocation() - GetActorLocation()).GetSafeNormal() * ((Mass * Velocity.Size2D()) / SpiderOwner->GetWebLength()));
 	}
+
+	Velocity = Velocity.GetClampedToMaxSize(WebSwingVelocity_MAX);
 
 	DrawDebugLine(GetWorld(), GetActorLocation(), SpiderOwner->GetWebAnchorLocation(), FColor::Green, false, -1.f, 0, 10.f);
 }
